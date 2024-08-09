@@ -63,7 +63,7 @@ void SHUFFLE_INT(int *array, size_t i, size_t j); /* prototype for use with "ran
 void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t ncol, 
                  R_xlen_t *rows, R_xlen_t nrows, int rowsHasNA,
                  R_xlen_t *cols, R_xlen_t ncols, int colsHasNA,
-                 ANS_C_TYPE *ans) {
+                 int byrow, ANS_C_TYPE *ans) {
   ANS_C_TYPE rank;
   X_C_TYPE *values, current, tmp;
   R_xlen_t *colOffset;
@@ -71,6 +71,9 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
   int *I;
   int lastFinite, firstTie, aboveTie, dense_rank_adj;
   int nvalues, nVec;
+  int norows, nocols;
+  if (cols == NULL) { nocols = 1; } else { nocols = 0; }
+  if (rows == NULL) { norows = 1; } else { norows = 0; }
 
 #if MARGIN == 'r'
   nvalues = ncols;
@@ -124,33 +127,25 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
        * is indeed useless, but for keeping the code ideomatic, we still do it
        * Hopefully, the compiler will optimize out the unnecessary instructions [JPP].
        */
-#if MARGIN == 'r'
-      tmp = R_INDEX_GET(x, R_INDEX_OP(rowIdx, +, colOffset[jj], rowsHasNA, colsHasNA), X_NA, colsHasNA || rowsHasNA);
-#elif MARGIN == 'c'
-      tmp = R_INDEX_GET(x, R_INDEX_OP(rowIdx, +, colOffset[jj], colsHasNA, rowsHasNA), X_NA, colsHasNA || rowsHasNA);
-#endif
+      if (byrow){
+        tmp = R_INDEX_GET(x, R_INDEX_OP(rowIdx, +, colOffset[jj], rowsHasNA, colsHasNA), X_NA, colsHasNA || rowsHasNA);
+      } else {
+        tmp = R_INDEX_GET(x, R_INDEX_OP(rowIdx, +, colOffset[jj], colsHasNA, rowsHasNA), X_NA, colsHasNA || rowsHasNA);
+      }
       
       if (X_ISNAN(tmp)) {
-        while (lastFinite > jj && X_ISNAN(R_INDEX_GET(x, R_INDEX_OP(rowIdx,+,colOffset[lastFinite],
-#if MARGIN == 'r'
-                                                                    rowsHasNA, colsHasNA
-#elif MARGIN == 'c'
-                                                                    colsHasNA, rowsHasNA
-#endif
-                                                                    ), X_NA, colsHasNA || rowsHasNA))) {
+        while (lastFinite > jj && X_ISNAN(R_INDEX_GET(x, 
+                                                      R_INDEX_OP(rowIdx,+,colOffset[lastFinite], byrow ? rowsHasNA : colsHasNA, byrow ? colsHasNA : rowsHasNA),
+                                                      X_NA, colsHasNA || rowsHasNA))) {
           I[lastFinite] = lastFinite;
           lastFinite--;
         }
 
         I[lastFinite] = jj;
         I[jj] = lastFinite;
-        values[ jj ] = R_INDEX_GET(x, R_INDEX_OP(rowIdx,+,colOffset[lastFinite],
-#if MARGIN == 'r'
-                                                 rowsHasNA, colsHasNA
-#elif MARGIN == 'c'
-                                                 colsHasNA, rowsHasNA
-#endif
-        ), X_NA, colsHasNA || rowsHasNA);
+        values[ jj ] = R_INDEX_GET(x, 
+                                   R_INDEX_OP(rowIdx,+,colOffset[lastFinite], byrow ? rowsHasNA : colsHasNA, byrow ? colsHasNA : rowsHasNA),
+                                   X_NA, colsHasNA || rowsHasNA);
         values[ lastFinite ] = tmp;
         lastFinite--;
       } else {
