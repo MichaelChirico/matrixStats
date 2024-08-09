@@ -49,15 +49,6 @@ void SHUFFLE_INT(int *array, size_t i, size_t j); /* prototype for use with "ran
 /* Indexing formula to compute the vector index of element j of vector i.
    Should take arguments element, vector, nElements, nVectors. */
 #undef ANS_INDEX_OF
-#if MARGIN == 'r'   /* rows */
-  #define ANS_INDEX_OF(element, vector, nRows) \
-            vector + element*nRows
-#elif MARGIN == 'c'   /* columns */
-  #define ANS_INDEX_OF(element, vector, nRows) \
-            element + vector*nRows
-#else
-  #error "MARGIN can only be 'r' or 'c'"
-#endif
 
 
 void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t ncol, 
@@ -75,44 +66,44 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
   if (cols == NULL) { nocols = 1; } else { nocols = 0; }
   if (rows == NULL) { norows = 1; } else { norows = 0; }
 
-#if MARGIN == 'r'
-  nvalues = ncols;
-  nVec = nrows;
+  if (byrow) {
+    nvalues = ncols;
+    nVec = nrows;
+  
+    /* Pre-calculate the column offsets */
+    colOffset = (R_xlen_t *) R_alloc(ncols, sizeof(R_xlen_t));
+    if (cols == NULL) {
+      for (jj=0; jj < ncols; jj++)
+        colOffset[jj] = R_INDEX_OP(jj, *, nrow, 0, 0);
+    } else {
+      for (jj=0; jj < ncols; jj++)
+        colOffset[jj] = R_INDEX_OP(cols[jj], *, nrow, colsHasNA, 0);
+    }
 
-  /* Pre-calculate the column offsets */
-  colOffset = (R_xlen_t *) R_alloc(ncols, sizeof(R_xlen_t));
-  if (cols == NULL) {
-    for (jj=0; jj < ncols; jj++)
-      colOffset[jj] = R_INDEX_OP(jj, *, nrow, 0, 0);
   } else {
-    for (jj=0; jj < ncols; jj++)
-      colOffset[jj] = R_INDEX_OP(cols[jj], *, nrow, colsHasNA, 0);
+    nvalues = nrows;
+    nVec = ncols;
+  
+    /* Pre-calculate the column offsets */
+    colOffset = (R_xlen_t *) R_alloc(nrows, sizeof(R_xlen_t));
+    if (rows == NULL) {
+      for (jj=0; jj < nrows; jj++)
+        colOffset[jj] = jj;
+    } else {
+      for (jj=0; jj < nrows; jj++)
+        colOffset[jj] = rows[jj];
+    }
   }
-
-#elif MARGIN == 'c'
-  nvalues = nrows;
-  nVec = ncols;
-
-  /* Pre-calculate the column offsets */
-  colOffset = (R_xlen_t *) R_alloc(nrows, sizeof(R_xlen_t));
-  if (rows == NULL) {
-    for (jj=0; jj < nrows; jj++)
-      colOffset[jj] = jj;
-  } else {
-    for (jj=0; jj < nrows; jj++)
-      colOffset[jj] = rows[jj];
-  }
-#endif
 
   values = (X_C_TYPE *) R_alloc(nvalues, sizeof(X_C_TYPE));
   I = (int *) R_alloc(nvalues, sizeof(int));
 
   for (ii=0; ii < nVec; ii++) {
-#if MARGIN == 'r'
+  if (byrow) {
     rowIdx = ((rows == NULL) ? (ii) : rows[ii]);
-#elif MARGIN == 'c'
+  } else {
     rowIdx = R_INDEX_OP(((cols == NULL) ? (ii) : cols[ii]), *, nrow, colsHasNA, 0);
-#endif
+  }
     lastFinite = nvalues-1;
 
     /* Put the NA/NaN elements at the end of the vector and update
@@ -208,21 +199,49 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
         rank = RANK(firstTie, aboveTie);
       }
       for (kk=firstTie; kk < aboveTie; kk++) {
-        if (TIESMETHOD == 'f' || TIESMETHOD == 'r') {
-          ans[ ANS_INDEX_OF(I[kk], ii, nrows) ] = kk + 1;
-        } else if (TIESMETHOD == 'l') {
-          ans[ ANS_INDEX_OF(I[kk], ii, nrows) ] = aboveTie - (kk - firstTie);
-        } else if (TIESMETHOD == 'd') {
-          ans[ ANS_INDEX_OF(I[kk + dense_rank_adj], ii, nrows) ] = rank;
+        if (byrow) {
+          switch (TIESMETHOD) {
+          case 'f':
+          case 'r':
+            ans[ii + I[kk]*nrows] = kk + 1;
+            break;
+          case 'l':
+            ans[ii + I[kk]*nrows] = aboveTie - (kk - firstTie);
+            break;
+          case 'd':
+            ans[ii + I[kk + dense_rank_adj]*nrows] = rank;
+            break;
+          default:
+            ans[ii + I[kk]*nrows] = rank;
+          break;
+          }
         } else {
-          ans[ ANS_INDEX_OF(I[kk], ii, nrows) ] = rank;
+          switch (TIESMETHOD) {
+          case 'f':
+          case 'r':
+            ans[I[kk] + ii*nrows] = kk + 1;
+            break;
+          case 'l':
+            ans[I[kk] + ii*nrows] = aboveTie - (kk - firstTie);
+            break;
+          case 'd':
+            ans[I[kk + dense_rank_adj] + ii*nrows] = rank;
+            break;
+          default:
+            ans[I[kk] + ii*nrows] = rank;
+            break;
+          }
         }
       }
     }
 
     // At this point jj = lastFinite + 1, no need to re-initialize again.
     for (; jj < nvalues; jj++) {
-      ans[ ANS_INDEX_OF(I[jj], ii, nrows) ] = ANS_NA;
+      if (byrow) {
+        ans[ii + I[jj]*nrows] = ANS_NA;
+      } else{
+        ans[I[jj] + ii*nrows] = ANS_NA;
+      }
     }
 
     // Rprintf("\n");
