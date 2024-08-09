@@ -10,7 +10,6 @@
    template to work as intended.
 
   - METHOD_NAME: the name of the resulting function
-  - MARGIN: 'r' (rows) or 'c' (columns).
   - X_TYPE: 'i' or 'r'
   - ANS_TYPE: 'i' or 'r'
   - TIESMETHOD: 'a' (average), 'f' (first), 'l' (last), 'r' (random), '0' (min), '1' (max), 'd' (dense)
@@ -99,11 +98,11 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
   I = (int *) R_alloc(nvalues, sizeof(int));
 
   for (ii=0; ii < nVec; ii++) {
-  if (byrow) {
-    rowIdx = ((rows == NULL) ? (ii) : rows[ii]);
-  } else {
-    rowIdx = R_INDEX_OP(((cols == NULL) ? (ii) : cols[ii]), *, nrow, colsHasNA, 0);
-  }
+    if (byrow) {
+      rowIdx = ((rows == NULL) ? (ii) : rows[ii]);
+    } else {
+      rowIdx = R_INDEX_OP(((cols == NULL) ? (ii) : cols[ii]), *, nrow, colsHasNA, 0);
+    }
     lastFinite = nvalues-1;
 
     /* Put the NA/NaN elements at the end of the vector and update
@@ -113,6 +112,8 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
        there are missing values. /PL (2012-12-14)
     */
     for (jj = 0; jj <= lastFinite; jj++) {
+      Rprintf("jj=%d\n", jj);
+      Rprintf("lastFinite=%d\n", lastFinite);
       /*
        * Checking for the colsHasNA when we already have to check colsHasNA || rowsHasNA
        * is indeed useless, but for keeping the code ideomatic, we still do it
@@ -123,13 +124,16 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
       } else {
         tmp = R_INDEX_GET(x, R_INDEX_OP(rowIdx, +, colOffset[jj], colsHasNA, rowsHasNA), X_NA, colsHasNA || rowsHasNA);
       }
+      Rprintf("tmp=%d\n",tmp);
       
       if (X_ISNAN(tmp)) {
         while (lastFinite > jj && X_ISNAN(R_INDEX_GET(x, 
                                                       R_INDEX_OP(rowIdx,+,colOffset[lastFinite], byrow ? rowsHasNA : colsHasNA, byrow ? colsHasNA : rowsHasNA),
                                                       X_NA, colsHasNA || rowsHasNA))) {
+          
           I[lastFinite] = lastFinite;
           lastFinite--;
+          Rprintf("lastFinite=%d\n", lastFinite);
         }
 
         I[lastFinite] = jj;
@@ -143,10 +147,11 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
         I[jj] = jj;
         values[ jj ] = tmp;
       }
+      Rprintf("lastFinite=%d\n",lastFinite);
     } /* for (jj ...) */
 
    // Diagnostic print-outs
-   /*
+   
 
     Rprintf("Swapped vector:\n");
     for (jj=0; jj < nvalues; jj++)
@@ -160,7 +165,6 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
       Rprintf(" %d,", I[jj]);
       if (((jj+1) % 5==0) || (jj==nvalues-1)) Rprintf("\n");
     }
-    */
 
 
     // This will sort the data in increasing order and use the I vector to keep track of the original
@@ -234,17 +238,19 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
         }
       }
     }
-
+    
+    
     // At this point jj = lastFinite + 1, no need to re-initialize again.
     for (; jj < nvalues; jj++) {
       if (byrow) {
+        Rprintf("idx=%d\n",ii + I[jj]*nrows);
         ans[ii + I[jj]*nrows] = ANS_NA;
       } else{
         ans[I[jj] + ii*nrows] = ANS_NA;
       }
     }
 
-    // Rprintf("\n");
+    Rprintf("\n");
   }
 }
 

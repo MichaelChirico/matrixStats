@@ -52,17 +52,17 @@ for (setDimnames in c(TRUE, FALSE)) {
 
       validateIndicesTestMatrix(x, rows, cols,
                                 ftest = rowRanks, fsure = rowRanks_R,
-                                ties.method = "average", useNames = useNames)
+                                ties.method = "average", useNames = useNames, debug = TRUE)
       
       validateIndicesTestMatrix(x, rows, cols,
                                 ftest = colRanks_R_t, fsure = rowRanks_R,
-                                ties.method = "average", useNames = useNames)
+                                ties.method = "average", useNames = useNames, debug = TRUE)
       
       for (perserveShape in c(TRUE, FALSE)) {
         validateIndicesTestMatrix(x, rows, cols,
                                   ftest = colRanks, fsure = colRanks_R,
                                   ties.method = "average", perserveShape = perserveShape,
-                                  useNames = useNames)          
+                                  useNames = useNames, debug = TRUE)          
       }
     }
   }
