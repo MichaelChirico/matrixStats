@@ -127,10 +127,20 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
       Rprintf("tmp=%d\n",tmp);
       
       if (X_ISNAN(tmp)) {
-        while (lastFinite > jj && X_ISNAN(R_INDEX_GET(x, 
-                                                      R_INDEX_OP(rowIdx,+,colOffset[lastFinite], byrow ? rowsHasNA : colsHasNA, byrow ? colsHasNA : rowsHasNA),
-                                                      X_NA, colsHasNA || rowsHasNA))) {
-          
+        while (lastFinite > jj) {
+          Rprintf("rowIdx=%d\n",rowIdx);
+          Rprintf("offset=%d\n",colOffset[lastFinite]);
+          /*
+           * BEWARE: Macro argument containing conditionals must be enclosed within parenthesis.
+           * Otherwise, it will interfere with how the macro is evaluated
+           */
+          R_xlen_t lastFinite_idx = R_INDEX_OP(rowIdx,+,colOffset[lastFinite], (byrow ? rowsHasNA : colsHasNA), (byrow ? colsHasNA : rowsHasNA));
+          Rprintf("lastFinite_idx=%d\n",lastFinite_idx);
+          ANS_C_TYPE lastFinite_val = R_INDEX_GET(x,lastFinite_idx,X_NA, colsHasNA || rowsHasNA);
+          Rprintf("lastFinite_val=%d\n",lastFinite_val);
+          if (!X_ISNAN(lastFinite_val)) {
+            break;
+          }
           I[lastFinite] = lastFinite;
           lastFinite--;
           Rprintf("lastFinite=%d\n", lastFinite);
@@ -139,7 +149,7 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
         I[lastFinite] = jj;
         I[jj] = lastFinite;
         values[ jj ] = R_INDEX_GET(x, 
-                                   R_INDEX_OP(rowIdx,+,colOffset[lastFinite], byrow ? rowsHasNA : colsHasNA, byrow ? colsHasNA : rowsHasNA),
+                                   R_INDEX_OP(rowIdx,+,colOffset[lastFinite], (byrow ? rowsHasNA : colsHasNA), (byrow ? colsHasNA : rowsHasNA)),
                                    X_NA, colsHasNA || rowsHasNA);
         values[ lastFinite ] = tmp;
         lastFinite--;
