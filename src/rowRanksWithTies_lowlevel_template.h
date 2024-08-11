@@ -18,7 +18,8 @@
   Hector Corrada Bravo [HCB]
   Peter Langfelder [PL]
   Henrik Bengtsson [HB]
-  Brian Montgomery [BKM]
+  Brian Montgomery 
+  Jakob Peder Pettersen [JPP]
  ***********************************************************************/
 #include <Rinternals.h>
 
@@ -71,13 +72,17 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
   
     /* Pre-calculate the column offsets */
     colOffset = (R_xlen_t *) R_alloc(ncols, sizeof(R_xlen_t));
-    if (cols == NULL) {
-      for (jj=0; jj < ncols; jj++)
-        colOffset[jj] = R_INDEX_OP(jj, *, nrow, 0, 0);
-    } else {
-      for (jj=0; jj < ncols; jj++)
-        colOffset[jj] = R_INDEX_OP(cols[jj], *, nrow, colsHasNA, 0);
-    }
+      for (jj=0; jj < ncols; jj++) {
+        if (nocols) {
+        colOffset[jj] = jj * nrow;
+        } else {
+          if (!colsHasNA) {
+            colOffset[jj] = cols[jj] * nrow;
+          } else {
+            colOffset[jj] = R_INDEX_OP(cols[jj], *, nrow, 1, 0);
+          } 
+        }
+      }
 
   } else {
     nvalues = nrows;
@@ -85,14 +90,16 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
   
     /* Pre-calculate the column offsets */
     colOffset = (R_xlen_t *) R_alloc(nrows, sizeof(R_xlen_t));
-    if (rows == NULL) {
-      for (jj=0; jj < nrows; jj++)
+    
+    for (jj=0; jj < nrows; jj++) {
+      if (norows) {
         colOffset[jj] = jj;
-    } else {
-      for (jj=0; jj < nrows; jj++)
+      } else {
         colOffset[jj] = rows[jj];
+      }
     }
-  }
+  } // if (byrow)
+    
   
 
   values = (X_C_TYPE *) R_alloc(nvalues, sizeof(X_C_TYPE));
