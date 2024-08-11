@@ -58,7 +58,7 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
   ANS_C_TYPE rank;
   X_C_TYPE *values, current, tmp;
   R_xlen_t *colOffset;
-  R_xlen_t ii, jj, kk, rowIdx;
+  R_xlen_t ii, jj, kk, rowIdx, idx;
   int *I;
   int lastFinite, firstTie, aboveTie, dense_rank_adj;
   int nvalues, nVec;
@@ -107,9 +107,21 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
 
   for (ii=0; ii < nVec; ii++) {
     if (byrow) {
-      rowIdx = ((rows == NULL) ? (ii) : rows[ii]);
+      if (norows) {
+        rowIdx = ii;
+      } else {
+        rowIdx = rows[ii];
+      }
     } else {
-      rowIdx = R_INDEX_OP(((cols == NULL) ? (ii) : cols[ii]), *, nrow, colsHasNA, 0);
+      if (nocols) {
+        rowIdx = ii * nrow;
+      } else {
+        if (!colsHasNA) {
+          rowIdx = cols[ii] * nrow;
+        } else {
+          rowIdx = R_INDEX_OP(cols[ii], *, nrow, 1, 0);
+        }
+      }
     }
     lastFinite = nvalues-1;
 
@@ -125,22 +137,26 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
        * is indeed useless, but for keeping the code ideomatic, we still do it
        * Hopefully, the compiler will optimize out the unnecessary instructions [JPP].
        */
-      if (byrow){
-        tmp = R_INDEX_GET(x, R_INDEX_OP(rowIdx, +, colOffset[jj], rowsHasNA, colsHasNA), X_NA, colsHasNA || rowsHasNA);
-      } else {
-        tmp = R_INDEX_GET(x, R_INDEX_OP(rowIdx, +, colOffset[jj], colsHasNA, rowsHasNA), X_NA, colsHasNA || rowsHasNA);
-      }
+        if (!rowsHasNA && !colsHasNA) {
+          idx = rowIdx + colOffset[jj];
+          tmp = x[idx];
+        } else {
+          idx = R_INDEX_OP(rowIdx, +, colOffset[jj], 1, 1);
+          tmp = R_INDEX_GET(x, idx, X_NA, 1);
+        }
       
       if (X_ISNAN(tmp)) {
         R_xlen_t lastFinite_idx;
         X_C_TYPE lastFinite_val;
         while (lastFinite > jj) {
-          /*
-           * BEWARE: Macro argument containing conditionals must be enclosed within parenthesis.
-           * Otherwise, it will interfere with how the macro is evaluated
-           */
-          lastFinite_idx = R_INDEX_OP(rowIdx, +, colOffset[lastFinite], (byrow ? rowsHasNA : colsHasNA), (byrow ? colsHasNA : rowsHasNA));
-          lastFinite_val = R_INDEX_GET(x, lastFinite_idx, X_NA, colsHasNA || rowsHasNA);
+          if (!rowsHasNA && !colsHasNA) {
+            lastFinite_idx = rowIdx + colOffset[lastFinite];
+            lastFinite_val = x[lastFinite_idx];  
+          } else {
+            lastFinite_idx = R_INDEX_OP(rowIdx, +, colOffset[lastFinite], 1, 1);
+            lastFinite_val = R_INDEX_GET(x, lastFinite_idx, X_NA, 1);  
+          }
+          
           if (!X_ISNAN(lastFinite_val)) {
             break;
           }
@@ -188,13 +204,16 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
     dense_rank_adj = 0;
     
     for (jj=0; jj <= lastFinite;) {
+      
       if (TIESMETHOD == 'd') {
         dense_rank_adj += (aboveTie - firstTie - 1);
         firstTie = jj - dense_rank_adj;
       } else {
         firstTie = jj;
       }
+      
       current = values[jj];
+      
       if (X_ISNAN(current)) {
         /*
          * This is really a runtime check of an internal programming error. Preferentially, it should have been
@@ -203,7 +222,9 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
          */
         error("Internal matrixStats programming error, NaN values not handled correctly");
       }
+      
       while ((jj <= lastFinite) && (values[jj] == current)) jj++;
+      
       if (TIESMETHOD == 'd') {
         aboveTie = jj - dense_rank_adj;
       } else {
@@ -221,9 +242,13 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
         // Get appropriate rank for average, min, max, or dense
         rank = RANK(firstTie, aboveTie);
       }
+      
       for (kk=firstTie; kk < aboveTie; kk++) {
         if (byrow) {
           switch (TIESMETHOD) {
+          /*
+           * Note the fallthrough
+           */
           case 'f':
           case 'r':
             ans[ii + I[kk]*nrows] = kk + 1;
@@ -236,7 +261,7 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
             break;
           default:
             ans[ii + I[kk]*nrows] = rank;
-          break;
+            break;
           }
         } else {
           switch (TIESMETHOD) {
