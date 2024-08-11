@@ -54,7 +54,6 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
                  R_xlen_t *rows, R_xlen_t nrows, int rowsHasNA,
                  R_xlen_t *cols, R_xlen_t ncols, int colsHasNA,
                  int byrow, ANS_C_TYPE *ans) {
-  Rprintf("Entering lowlevel function\n");
   ANS_C_TYPE rank;
   X_C_TYPE *values, current, tmp;
   R_xlen_t *colOffset;
@@ -95,13 +94,11 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
     }
   }
   
-  Rprintf("Column offsets calculated\n");
 
   values = (X_C_TYPE *) R_alloc(nvalues, sizeof(X_C_TYPE));
   I = (int *) R_alloc(nvalues, sizeof(int));
 
   for (ii=0; ii < nVec; ii++) {
-    Rprintf("Entering main loop\n");
     if (byrow) {
       rowIdx = ((rows == NULL) ? (ii) : rows[ii]);
     } else {
@@ -129,14 +126,14 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
       
       if (X_ISNAN(tmp)) {
         R_xlen_t lastFinite_idx;
-        ANS_C_TYPE lastFinite_val;
+        X_C_TYPE lastFinite_val;
         while (lastFinite > jj) {
           /*
            * BEWARE: Macro argument containing conditionals must be enclosed within parenthesis.
            * Otherwise, it will interfere with how the macro is evaluated
            */
-          lastFinite_idx = R_INDEX_OP(rowIdx,+,colOffset[lastFinite], (byrow ? rowsHasNA : colsHasNA), (byrow ? colsHasNA : rowsHasNA));
-          lastFinite_val = R_INDEX_GET(x,lastFinite_idx,X_NA, colsHasNA || rowsHasNA);
+          lastFinite_idx = R_INDEX_OP(rowIdx, +, colOffset[lastFinite], (byrow ? rowsHasNA : colsHasNA), (byrow ? colsHasNA : rowsHasNA));
+          lastFinite_val = R_INDEX_GET(x, lastFinite_idx, X_NA, colsHasNA || rowsHasNA);
           if (!X_ISNAN(lastFinite_val)) {
             break;
           }
@@ -147,7 +144,6 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
         I[lastFinite] = jj;
         I[jj] = lastFinite;
         values[ jj ] = lastFinite_val;
-        Rprintf("values[jj]=%f\n",values[jj]);
         values[ lastFinite ] = tmp;
         lastFinite--;
       } else {
@@ -155,11 +151,10 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
         values[ jj ] = tmp;
       }
     } /* for (jj ...) */
-    Rprintf("Finished sorting of NaN values\n");
 
    // Diagnostic print-outs
    
-    
+    /*
     Rprintf("Swapped vector:\n");
     for (jj=0; jj < nvalues; jj++)
     {
@@ -172,7 +167,7 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
       Rprintf(" %d,", I[jj]);
       if (((jj+1) % 5==0) || (jj==nvalues-1)) Rprintf("\n");
     }
-    
+    */
 
 
     // This will sort the data in increasing order and use the I vector to keep track of the original
@@ -184,14 +179,8 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
     firstTie = 0;
     aboveTie = 1;
     dense_rank_adj = 0;
+    
     for (jj=0; jj <= lastFinite;) {
-      
-      if (jj==0) {
-        Rprintf("In inner loop\n");
-        Rprintf("jj=%d\n",jj);
-        Rprintf("lastFinite=%d\n",lastFinite);
-        Rprintf("values[jj]=%f\n",values[jj]);
-      }
       if (TIESMETHOD == 'd') {
         dense_rank_adj += (aboveTie - firstTie - 1);
         firstTie = jj - dense_rank_adj;
@@ -200,7 +189,12 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
       }
       current = values[jj];
       if (X_ISNAN(current)) {
-        error("Internal matrixStats error, attempting to handle NaN value");
+        /*
+         * This is really a runtime check of an internal programming error. Preferentially, it should have been
+         * caught by testing. The only problem is that the test would be stuck in an infinite loop unless it is
+         * checked for at runtime. 
+         */
+        error("Internal matrixStats programming error, NaN values not handled correctly");
       }
       while ((jj <= lastFinite) && (values[jj] == current)) jj++;
       if (TIESMETHOD == 'd') {
@@ -271,7 +265,6 @@ void CONCAT_MACROS(METHOD, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nrow, R_xlen_t n
     Rprintf("\n");
      */
   }
-  Rprintf("Exiting lowlevel function\n");
 }
 
 
