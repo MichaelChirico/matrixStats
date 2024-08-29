@@ -43,6 +43,7 @@ jobs:
       _R_CHECK_SUGGESTS_ONLY_: true
       _R_CHECK_THINGS_IN_TEMP_DIR_: true
       _R_CHECK_S3_METHODS_SHOW_POSSIBLE_ISSUES_: true
+      _R_USE_STRICT_R_HEADERS_: true
       
     steps:
       - uses: actions/checkout@v4
