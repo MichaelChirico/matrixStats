@@ -8,6 +8,14 @@
 
  * None of the error messages use a trailing period.
  
+ * Addressing changes in the C API of R-devel resulted in compiler
+   errors such as `error: implicit declaration of function 'Calloc';
+   did you mean 'calloc'? [-Wimplicit-function-declaration]`.
+
+ * Addressing changes in stricter compiler flags of R-devel resulted
+   in compiler warning `embedding a directive within macro arguments
+   has undefined behavior [-Wembedded-directive]`.
+
 
 # Version 1.3.0 [2024-04-10]
 

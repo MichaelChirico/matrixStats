@@ -12,7 +12,7 @@
 #'  \item{\option{matrixStats.center.onUse}:}{(string)
 #'    Action taken when argument \code{center} is specified.
 #'    If \code{"defunct"}, an error is thrown.
-#'    If \code{"deprecated"}, a warning is signalled.
+#'    If \code{"deprecated"}, a warning is signaled.
 #'    If \code{"ignore"}, it's silently ignored.
 #'    (Default: \code{"ignore"})}
 #' }
@@ -21,7 +21,7 @@
 #'  \item{\option{matrixStats.center.onScalar}:}{(string)
 #'    Action taken when argument \code{center} is a scalar.
 #'    If \code{"defunct"}, an error is thrown.
-#'    If \code{"deprecated"}, a warning is signalled.
+#'    If \code{"deprecated"}, a warning is signaled.
 #'    If \code{"ignore"}, it's silently ignored.
 #'    (Default: \code{"deprecated"})}
 #' }
@@ -31,7 +31,7 @@
 #'    Action taken when argument \code{center} is specified with the wrong
 #'    assumptions of the underlying formula used internally.
 #'    If \code{"defunct"}, an error is thrown.
-#'    If \code{"deprecated"}, a warning is signalled.
+#'    If \code{"deprecated"}, a warning is signaled.
 #'    (Default: \code{"defunct"})}
 #' }
 #'
@@ -46,7 +46,7 @@
 #'    Controls whether argument \code{ties.method} for \code{colRanks()}
 #'    and \code{rowRanks()} should be explicitly specified.
 #'    If \code{"defunct"}, an error is produced, if not.
-#'    If \code{"deprecated"}, a warning is signalled.
+#'    If \code{"deprecated"}, a warning is signaled.
 #'    If \code{"ignore"}, it's silently ignored.
 #'    (Default: \code{"deprecated"} in R (>= 4.4.0), otherwise \code{"ignore"})}
 #' }
@@ -61,7 +61,7 @@
 #'  \item{\option{matrixStats.useNames.NA}:}{(string)
 #'    Action taken when argument \code{useNames} is set to \code{NA}.
 #'    If \code{"defunct"}, an error is thrown.
-#'    If \code{"deprecated"}, a warning is signalled.
+#'    If \code{"deprecated"}, a warning is signaled.
 #'    (Default: \code{"defunct"})}
 #' }
 #'

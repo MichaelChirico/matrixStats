@@ -38,5 +38,5 @@ NeedsCompilation: yes
 ByteCompile: TRUE
 URL: https://github.com/HenrikBengtsson/matrixStats
 BugReports: https://github.com/HenrikBengtsson/matrixStats/issues
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Roxygen: list(old_usage = TRUE)
