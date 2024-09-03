@@ -1,6 +1,12 @@
 # Version (development version)
 
- * ...
+## Performance
+
+ * `rowSums2()` is now significantly faster for larger matrices.
+ 
+## Miscellaneous
+
+ * None of the error messages use a trailing period.
  
 
 # Version 1.3.0 [2024-04-10]
@@ -1110,7 +1116,7 @@
 
 ## Deprecated and Defunct
 
- * Calling `indexByRow(X)` with a matrix `X` is deprecatated.  Instead
+ * Calling `indexByRow(X)` with a matrix `X` is deprecated.  Instead
    call it with `indexByRow(dim(X))`.
 
 
