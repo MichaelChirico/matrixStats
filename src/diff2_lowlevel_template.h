@@ -72,7 +72,7 @@ void CONCAT_MACROS(diff2, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nx,
     }
   } else {
     /* Allocate temporary work vector (to hold intermediate differences) */
-    tmp = Calloc(nidxs - lag, X_C_TYPE);
+    tmp = R_CALLOC(nidxs - lag, X_C_TYPE);
 
     /* (a) First order of differences */
     for (ii=0; ii < nidxs-lag; ii++) {
@@ -115,7 +115,7 @@ void CONCAT_MACROS(diff2, X_C_SIGNATURE)(X_C_TYPE *x, R_xlen_t nx,
     }
 
     /* Deallocate temporary work vector */
-    Free(tmp);
+    R_FREE(tmp);
   } /* if (differences ...) */
 }
 
