@@ -16,6 +16,13 @@
    in compiler warning `embedding a directive within macro arguments
    has undefined behavior [-Wembedded-directive]`.
 
+## Deprecated and Defunct
+
+ * Calling `colRanks()` and `rowRanks()` without explicitly specifying
+   argument `ties.method` is deprecated since version 1.3.0. If not
+   explicitly specified, a deprecation warning is now produced every
+   25:th call not specifying the `ties.method` argument.
+   
 
 # Version 1.3.0 [2024-04-10]
 

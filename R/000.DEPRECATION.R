@@ -102,7 +102,7 @@ validateTiesMethodMissing <- local({
   always <- structure(TRUE, when = "each time this function is called")
   
   function() {
-    freq <- getOption("matrixStats.ties.method.freq", 50L)
+    freq <- getOption("matrixStats.ties.method.freq", 25L)
     
     ## Nothing to do?
     if (is.null(freq)) return(FALSE)
